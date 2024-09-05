@@ -1,4 +1,4 @@
 # Gyro-Cars
-<b>Car controlhandle</b> pengendali gyronya </br>
-<b>Car control</b> pengendali sinyal ke Arduino </br>
-<b>Car respon</b> penerima sinyal alatnya sperti lampu dan l298n </br>
+<i>Car controlhandle</i> pengendali gyronya </br>
+<i>Car control</i> pengendali sinyal ke Arduino </br>
+<i>Car respon</i> penerima sinyal alatnya sperti lampu dan l298n </br>
