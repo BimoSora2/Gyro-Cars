@@ -19,6 +19,10 @@ byte mac[6];
 const int buttonLight = D6;
 const int buttonPolice = D7;
 
+// Accelerometer sensitivity thresholds
+const int16_t TILT_THRESHOLD = 2000;  // Reduced from 8000
+const int16_t MAX_TILT = 15000;       // Reduced from 32767
+
 void setup() {
   Serial.begin(9600);
   Serial.println();
@@ -61,6 +65,10 @@ void setup() {
   pinMode(buttonLight, INPUT_PULLUP);
   pinMode(buttonPolice, INPUT_PULLUP);
 }
+int16_t mapAndConstrain(int16_t value, int16_t fromLow, int16_t fromHigh, int16_t toLow, int16_t toHigh) {
+  int32_t mappedValue = map(constrain(value, fromLow, fromHigh), fromLow, fromHigh, toLow, toHigh);
+  return constrain(mappedValue, toLow, toHigh);
+}
 
 void loop() {
   static unsigned long lastSendTime = 0;
@@ -74,11 +82,27 @@ void loop() {
     mpu.getAcceleration(&ax, &ay, &az);
 
     char command[16];
-    if (ax > 8000) snprintf(command, sizeof(command), "up,%d", map(ax, 8000, 32767, 0, 255));
-    else if (ax < -8000) snprintf(command, sizeof(command), "down,%d", map(-ax, 8000, 32767, 0, 255));
-    else if (ay > 8000) snprintf(command, sizeof(command), "left,%d", map(ay, 8000, 32767, 0, 255));
-    else if (ay < -8000) snprintf(command, sizeof(command), "right,%d", map(-ay, 8000, 32767, 0, 255));
-    else strcpy(command, "stop");
+    if (abs(ax) > abs(ay)) {  // Prioritize forward/backward over left/right
+      if (ax > TILT_THRESHOLD) {
+        int speed = mapAndConstrain(ax, TILT_THRESHOLD, MAX_TILT, 0, 255);
+        snprintf(command, sizeof(command), "up,%d", speed);
+      } else if (ax < -TILT_THRESHOLD) {
+        int speed = mapAndConstrain(-ax, TILT_THRESHOLD, MAX_TILT, 0, 255);
+        snprintf(command, sizeof(command), "down,%d", speed);
+      } else {
+        strcpy(command, "stop");
+      }
+    } else {
+      if (ay > TILT_THRESHOLD) {
+        int speed = mapAndConstrain(ay, TILT_THRESHOLD, MAX_TILT, 0, 255);
+        snprintf(command, sizeof(command), "left,%d", speed);
+      } else if (ay < -TILT_THRESHOLD) {
+        int speed = mapAndConstrain(-ay, TILT_THRESHOLD, MAX_TILT, 0, 255);
+        snprintf(command, sizeof(command), "right,%d", speed);
+      } else {
+        strcpy(command, "stop");
+      }
+    }
 
     sendUDPPacket(command);
   }
